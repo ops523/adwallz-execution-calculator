@@ -56,14 +56,17 @@ if st.button("Calculate"):
 
         base_teams_required = max(1, math.ceil(total_team_days / available_days))
 
+        # ✅ APPLY BUFFER (DOUBLE TEAMS)
+        buffered_teams_required = base_teams_required * 2
+
         # --- OUTPUT ---
         st.subheader("Results")
         st.write(f"Client: {client_name}")
         st.write(f"Total Walls: {total_walls}")
         st.write(f"Available Days: {available_days}")
-        st.success(f"Teams Required: {base_teams_required}")
+        st.success(f"Teams Required: {buffered_teams_required}")
 
-        if base_teams_required > 1:
+        if buffered_teams_required > 1:
             st.info("Multiple teams required to meet deadline")
         else:
             st.info("Single team is sufficient")
@@ -78,7 +81,6 @@ if st.button("Calculate"):
             forecast_dates = []
             current_date = today
 
-            # Thursdays (3) & Sundays (6)
             while current_date <= cutoff_date:
                 if current_date.weekday() in [3, 6]:
                     forecast_dates.append(current_date)
@@ -87,16 +89,13 @@ if st.button("Calculate"):
             for date_point in forecast_dates:
                 days_passed = (date_point - start_date).days
 
-                # Work done so far (actual + simulated)
                 future_work = current_teams * productivity * days_passed
                 work_done = min(total_walls, walls_completed + future_work)
 
                 remaining_walls = max(0, total_walls - work_done)
 
-                # Remaining execution team-days
                 remaining_exec_td = remaining_walls / productivity
 
-                # Remaining travel team-days (parallelized)
                 remaining_cities = max(0, num_cities - cities_completed)
                 remaining_travel_td = max(0, remaining_cities - 1)
 
@@ -106,7 +105,10 @@ if st.button("Calculate"):
 
                 teams_needed_total = math.ceil(remaining_team_days / days_left)
 
-                additional_needed = max(0, teams_needed_total - current_teams)
+                # ✅ APPLY BUFFER HERE ALSO
+                teams_needed_total_buffered = teams_needed_total * 2
+
+                additional_needed = max(0, teams_needed_total_buffered - current_teams)
 
                 st.write(
                     f"Additional teams to be deployed after {date_point.strftime('%B %d, %Y')}: {additional_needed}"
