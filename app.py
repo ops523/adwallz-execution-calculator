@@ -32,14 +32,20 @@ end_date = st.date_input("Project End Date")
 st.subheader("Current Progress (Optional)")
 current_teams = st.number_input("Current Teams on Field", min_value=0, step=1)
 walls_completed = st.number_input("Walls Completed So Far", min_value=0, step=1)
+cities_completed = st.number_input("Number of Cities Completed", min_value=0, max_value=int(num_cities), step=1)
 
 # --- LOGIC ---
 def get_productivity(media_type):
     return 12 if media_type == "Lowrise" else 2
 
 
-def calculate_travel_days(num_cities):
+def total_travel_days(num_cities):
     return max(0, num_cities - 1)
+
+
+def remaining_travel_days(num_cities, cities_completed):
+    remaining_cities = max(0, num_cities - cities_completed)
+    return max(0, remaining_cities - 1)
 
 
 if st.button("Calculate"):
@@ -52,9 +58,10 @@ if st.button("Calculate"):
         productivity = get_productivity(media_type)
         available_days = (end_date - start_date).days
 
-        travel_days = calculate_travel_days(num_cities)
+        # --- BASE CALCULATION (includes full travel) ---
+        travel_days_full = total_travel_days(num_cities)
         total_execution_days = total_walls / productivity
-        total_required_days = total_execution_days + travel_days
+        total_required_days = total_execution_days + travel_days_full
 
         base_teams_required = max(1, round((total_required_days / available_days) + 0.5))
 
@@ -70,11 +77,9 @@ if st.button("Calculate"):
         else:
             st.info("Single team is sufficient")
 
-        # --- BI-WEEKLY FORECAST ---
+        # --- BI-WEEKLY FORECAST (WITH TRAVEL + PROGRESS) ---
         if current_teams > 0:
             st.subheader("Bi-Weekly Team Requirement Forecast")
-
-            remaining_walls = max(0, total_walls - walls_completed)
 
             today = start_date
             cutoff_date = end_date - timedelta(days=7)
@@ -84,22 +89,35 @@ if st.button("Calculate"):
 
             # Generate Thursdays & Sundays
             while current_date <= cutoff_date:
-                if current_date.weekday() == 3 or current_date.weekday() == 6:  # Thu=3, Sun=6
+                if current_date.weekday() == 3 or current_date.weekday() == 6:
                     forecast_dates.append(current_date)
                 current_date += timedelta(days=1)
 
             for date_point in forecast_dates:
                 days_passed = (date_point - start_date).days
 
-                work_done = current_teams * productivity * days_passed
-                remaining = max(0, total_walls - work_done)
+                # Work done till this point (actual + simulated)
+                future_work = current_teams * productivity * days_passed
+                work_done = walls_completed + future_work
 
+                remaining_walls = max(0, total_walls - work_done)
+
+                # Remaining time
                 days_left = max(1, (end_date - date_point).days)
 
-                teams_needed = remaining / (productivity * days_left)
-                teams_needed = max(1, round(teams_needed + 0.5))
+                # Remaining travel impact
+                travel_left = remaining_travel_days(num_cities, cities_completed)
+                effective_days_left = max(1, days_left - travel_left)
 
-                st.write(f"Teams required after {date_point.strftime('%B %d, %Y')}: {teams_needed}")
+                # Teams needed including travel constraint
+                teams_needed_total = remaining_walls / (productivity * effective_days_left)
+                teams_needed_total = max(1, round(teams_needed_total + 0.5))
+
+                additional_needed = max(0, teams_needed_total - current_teams)
+
+                st.write(
+                    f"Additional teams to be deployed after {date_point.strftime('%B %d, %Y')}: {additional_needed}"
+                )
 
             if len(forecast_dates) == 0:
                 st.warning("Not enough timeline to generate bi-weekly forecast")
