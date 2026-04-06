@@ -71,21 +71,23 @@ if st.button("Calculate"):
         else:
             st.info("Single team is sufficient")
 
-        # --- FORECAST (PARALLEL TEAM-DAYS MODEL) ---
-        if current_teams > 0:
-            st.subheader("Bi-Weekly Team Requirement Forecast")
+        # --- FORECAST (ALWAYS SHOWN) ---
+        st.subheader("Bi-Weekly Team Requirement Forecast")
 
-            today = start_date
-            cutoff_date = end_date - timedelta(days=7)
+        today = start_date
+        cutoff_date = end_date - timedelta(days=7)
 
-            forecast_dates = []
-            current_date = today
+        forecast_dates = []
+        current_date = today
 
-            while current_date <= cutoff_date:
-                if current_date.weekday() in [3, 6]:
-                    forecast_dates.append(current_date)
-                current_date += timedelta(days=1)
+        while current_date <= cutoff_date:
+            if current_date.weekday() in [3, 6]:
+                forecast_dates.append(current_date)
+            current_date += timedelta(days=1)
 
+        if current_teams == 0:
+            st.warning("Enter Current Teams on Field to view forecast")
+        else:
             for date_point in forecast_dates:
                 days_passed = (date_point - start_date).days
 
@@ -105,7 +107,6 @@ if st.button("Calculate"):
 
                 teams_needed_total = math.ceil(remaining_team_days / days_left)
 
-                # ✅ APPLY BUFFER HERE ALSO
                 teams_needed_total_buffered = teams_needed_total * 2
 
                 additional_needed = max(0, teams_needed_total_buffered - current_teams)
@@ -114,5 +115,5 @@ if st.button("Calculate"):
                     f"Additional teams to be deployed after {date_point.strftime('%B %d, %Y')}: {additional_needed}"
                 )
 
-            if len(forecast_dates) == 0:
-                st.warning("Not enough timeline to generate bi-weekly forecast")
+        if len(forecast_dates) == 0:
+            st.warning("Not enough timeline to generate bi-weekly forecast")
