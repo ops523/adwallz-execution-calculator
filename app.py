@@ -32,5 +32,15 @@ if wall_input_mode == "Same number of walls in each city":
     walls = st.number_input("Number of Walls per City", min_value=0, step=1)
     walls_per_city = [walls] * int(num_cities)
 
-else:
+elif wall_input_mode == "Different number of walls in each city":
     for i in range(int(num_cities)):
+        walls = st.number_input(
+            f"City {i+1} - Number of Walls",
+            min_value=0,
+            step=1,
+            key=f"city_{i}"
+        )
+        walls_per_city.append(walls)
+
+start_date = st.date_input("Project Start Date")
+en
