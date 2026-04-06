@@ -39,6 +39,7 @@ cities_completed = st.number_input("Number of Cities Completed", min_value=0, ma
 def get_productivity(media_type):
     return 12 if media_type == "Lowrise" else 2
 
+
 if st.button("Calculate"):
     if not client_name:
         st.error("Please enter client name")
@@ -49,14 +50,14 @@ if st.button("Calculate"):
         productivity = get_productivity(media_type)
         available_days = (end_date - start_date).days
 
-        # --- BASE (TEAM-DAYS MODEL) ---
+        # --- BASE CALCULATION (TEAM-DAYS MODEL) ---
         total_exec_team_days = total_walls / productivity
         total_travel_team_days = max(0, num_cities - 1)
         total_team_days = total_exec_team_days + total_travel_team_days
 
         base_teams_required = max(1, math.ceil(total_team_days / available_days))
 
-        # ✅ APPLY BUFFER (DOUBLE TEAMS)
+        # --- BUFFER (2x) ---
         buffered_teams_required = base_teams_required * 2
 
         # --- OUTPUT ---
@@ -74,30 +75,39 @@ if st.button("Calculate"):
         # --- FORECAST (ALWAYS SHOWN) ---
         st.subheader("Bi-Weekly Team Requirement Forecast")
 
+        if current_teams == 0:
+            st.info("Forecast assumes no teams deployed yet (delayed start scenario)")
+
         today = start_date
         cutoff_date = end_date - timedelta(days=7)
 
         forecast_dates = []
         current_date = today
 
+        # Generate Thursdays & Sundays
         while current_date <= cutoff_date:
-            if current_date.weekday() in [3, 6]:
+            if current_date.weekday() in [3, 6]:  # Thu & Sun
                 forecast_dates.append(current_date)
             current_date += timedelta(days=1)
 
-        if current_teams == 0:
-            st.warning("Enter Current Teams on Field to view forecast")
+        if len(forecast_dates) == 0:
+            st.warning("Not enough timeline to generate bi-weekly forecast")
         else:
             for date_point in forecast_dates:
                 days_passed = (date_point - start_date).days
 
-                future_work = current_teams * productivity * days_passed
+                # --- WORK DONE ---
+                if current_teams == 0:
+                    future_work = 0
+                else:
+                    future_work = current_teams * productivity * days_passed
+
                 work_done = min(total_walls, walls_completed + future_work)
 
                 remaining_walls = max(0, total_walls - work_done)
 
+                # --- TEAM-DAYS REMAINING ---
                 remaining_exec_td = remaining_walls / productivity
-
                 remaining_cities = max(0, num_cities - cities_completed)
                 remaining_travel_td = max(0, remaining_cities - 1)
 
@@ -107,13 +117,11 @@ if st.button("Calculate"):
 
                 teams_needed_total = math.ceil(remaining_team_days / days_left)
 
-                teams_needed_total_buffered = teams_needed_total * 2
+                # --- BUFFER APPLIED ---
+                teams_needed_buffered = teams_needed_total * 2
 
-                additional_needed = max(0, teams_needed_total_buffered - current_teams)
+                additional_needed = max(0, teams_needed_buffered - current_teams)
 
                 st.write(
                     f"Additional teams to be deployed after {date_point.strftime('%B %d, %Y')}: {additional_needed}"
                 )
-
-        if len(forecast_dates) == 0:
-            st.warning("Not enough timeline to generate bi-weekly forecast")
