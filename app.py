@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="ADWALLZ - On Field Execution Calculator", layout="centered")
 
@@ -7,9 +7,7 @@ st.title("ADWALLZ - On Field Execution Calculator")
 
 # --- INPUTS ---
 client_name = st.text_input("Client Name")
-
 media_type = st.selectbox("Select Media Type", ["Lowrise", "Highrise"])
-
 num_cities = st.number_input("Number of Cities", min_value=1, step=1)
 
 wall_input_mode = st.radio(
@@ -35,7 +33,7 @@ st.subheader("Current Progress (Optional)")
 current_teams = st.number_input("Current Teams on Field", min_value=0, step=1)
 walls_completed = st.number_input("Walls Completed So Far", min_value=0, step=1)
 
-# --- CALCULATION LOGIC ---
+# --- LOGIC ---
 def get_productivity(media_type):
     return 12 if media_type == "Lowrise" else 2
 
@@ -52,17 +50,12 @@ if st.button("Calculate"):
     else:
         total_walls = sum(walls_per_city)
         productivity = get_productivity(media_type)
-
-        remaining_walls = max(0, total_walls - walls_completed)
-
-        travel_days = calculate_travel_days(num_cities)
         available_days = (end_date - start_date).days
 
-        # Total days needed for full work
+        travel_days = calculate_travel_days(num_cities)
         total_execution_days = total_walls / productivity
         total_required_days = total_execution_days + travel_days
 
-        # Base teams required
         base_teams_required = max(1, round((total_required_days / available_days) + 0.5))
 
         # --- OUTPUT ---
@@ -77,40 +70,36 @@ if st.button("Calculate"):
         else:
             st.info("Single team is sufficient")
 
-        # --- FORECAST LOGIC ---
-        st.subheader("Bi-Weekly Forecast Scenario")
+        # --- BI-WEEKLY FORECAST ---
+        if current_teams > 0:
+            st.subheader("Bi-Weekly Team Requirement Forecast")
 
-        delayed_teams = st.number_input("Teams deployed initially (Day 1)", min_value=0, step=1)
-        added_teams_later = st.number_input("Additional teams added after 7 days", min_value=0, step=1)
+            remaining_walls = max(0, total_walls - walls_completed)
 
-        if delayed_teams > 0:
-            # Work done in first 7 days
-            work_done_first_phase = delayed_teams * productivity * 7
+            today = start_date
+            cutoff_date = end_date - timedelta(days=7)
 
-            remaining_after_7_days = max(0, total_walls - work_done_first_phase)
+            forecast_dates = []
+            current_date = today
 
-            remaining_days = max(1, available_days - 7)
+            # Generate Thursdays & Sundays
+            while current_date <= cutoff_date:
+                if current_date.weekday() == 3 or current_date.weekday() == 6:  # Thu=3, Sun=6
+                    forecast_dates.append(current_date)
+                current_date += timedelta(days=1)
 
-            teams_needed_after = remaining_after_7_days / (productivity * remaining_days)
-            teams_needed_after = max(0, round(teams_needed_after + 0.5))
+            for date_point in forecast_dates:
+                days_passed = (date_point - start_date).days
 
-            additional_needed = max(0, teams_needed_after - added_teams_later)
+                work_done = current_teams * productivity * days_passed
+                remaining = max(0, total_walls - work_done)
 
-            st.write(f"Remaining Walls after 7 days: {remaining_after_7_days}")
-            st.write(f"Teams needed after Day 7: {teams_needed_after}")
-            st.warning(f"Additional Teams Required: {additional_needed}")
+                days_left = max(1, (end_date - date_point).days)
 
-        # --- CURRENT PROGRESS ADJUSTMENT ---
-        if current_teams > 0 and remaining_walls > 0:
-            st.subheader("Live Project Adjustment")
+                teams_needed = remaining / (productivity * days_left)
+                teams_needed = max(1, round(teams_needed + 0.5))
 
-            days_left = max(1, available_days)
+                st.write(f"Teams required after {date_point.strftime('%B %d, %Y')}: {teams_needed}")
 
-            teams_required_now = remaining_walls / (productivity * days_left)
-            teams_required_now = max(1, round(teams_required_now + 0.5))
-
-            extra_teams_needed = max(0, teams_required_now - current_teams)
-
-            st.write(f"Remaining Walls: {remaining_walls}")
-            st.write(f"Teams Required Now: {teams_required_now}")
-            st.warning(f"Additional Teams Needed: {extra_teams_needed}")
+            if len(forecast_dates) == 0:
+                st.warning("Not enough timeline to generate bi-weekly forecast")
