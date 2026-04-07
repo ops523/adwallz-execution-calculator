@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import timedelta
 import math
 
-st.set_page_config(page_title="ADWALLZ - On Field Execution Calculator", layout="centered")
+st.set_page_config(page_title="On Field Execution Teams Calculator", layout="centered")
 
 # --- HEADER WITH CENTERED LOGO ---
 col_logo = st.columns([1,2,1])
