@@ -2,6 +2,10 @@ import streamlit as st
 from datetime import timedelta
 import math
 
+st.image("logo.png", width=200)
+st.markdown("<h2 style='text-align: center;'>ADWALLZ - On Field Execution Calculator</h2>", unsafe_allow_html=True)
+st.markdown("---")
+
 st.set_page_config(page_title="ADWALLZ - On Field Execution Calculator", layout="centered")
 
 st.title("ADWALLZ - On Field Execution Calculator")
