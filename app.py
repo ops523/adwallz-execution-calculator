@@ -76,7 +76,7 @@ if st.button("Calculate"):
         productivity = get_productivity(media_type)
         available_days = (end_date - start_date).days
 
-        # --- TEAM DAYS ---
+        # --- TEAM-DAYS MODEL ---
         total_exec_td = total_walls / productivity
         total_travel_td = max(0, num_cities - 1)
         total_team_days = total_exec_td + total_travel_td
@@ -88,13 +88,10 @@ if st.button("Calculate"):
         total_sqft = total_walls * wall_size
 
         # --- COSTING ---
-        # Salaries (monthly → daily)
         exec_salary_daily = 25000 / 30
         helper_salary_daily = 15000 / 30
-
         salary_per_team_per_day = exec_salary_daily + helper_salary_daily
 
-        # Daily costs
         food_cost = 350 * 2
         travel_daily = 500
         stay_cost = 700
@@ -108,15 +105,15 @@ if st.button("Calculate"):
             misc_cost
         )
 
-        # Total working days approx
         project_days = available_days
 
-        # Total cost
+        # --- CORRECTED INTERCITY TRAVEL ---
+        cities_per_team = num_cities / buffered_teams
+        travel_moves_per_team = max(0, cities_per_team - 1)
+        intercity_travel_cost = travel_moves_per_team * 1200 * buffered_teams
+
+        # --- TOTAL COST ---
         total_execution_cost = daily_cost_per_team * buffered_teams * project_days
-
-        # Intercity travel cost
-        intercity_travel_cost = (num_cities - 1) * 1200 * buffered_teams
-
         total_cost = total_execution_cost + intercity_travel_cost
 
         cost_per_sqft = total_cost / total_sqft if total_sqft > 0 else 0
@@ -130,6 +127,16 @@ if st.button("Calculate"):
         colr2.metric("Available Days", available_days)
         colr3.metric("Teams Required", buffered_teams)
 
+        # --- STATUS ---
+        if current_teams == 0:
+            st.info("⚠️ No teams deployed yet")
+        elif buffered_teams <= current_teams:
+            st.success("🟢 On Track")
+        elif buffered_teams <= current_teams * 1.5:
+            st.warning("🟡 Slightly Understaffed")
+        else:
+            st.error("🔴 High Risk - Increase Teams")
+
         # --- COST DISPLAY ---
         st.markdown("## 💰 Cost Breakdown")
 
@@ -138,7 +145,7 @@ if st.button("Calculate"):
 
         st.markdown("### Detailed Costs")
 
-        st.write(f"Salary Cost (Total): ₹ {round(salary_per_team_per_day * buffered_teams * project_days):,}")
+        st.write(f"Salary Cost: ₹ {round(salary_per_team_per_day * buffered_teams * project_days):,}")
         st.write(f"Food Cost: ₹ {round(food_cost * buffered_teams * project_days):,}")
         st.write(f"Daily Travel Cost: ₹ {round(travel_daily * buffered_teams * project_days):,}")
         st.write(f"Stay Cost: ₹ {round(stay_cost * buffered_teams * project_days):,}")
@@ -183,3 +190,7 @@ if st.button("Calculate"):
                 )
 
             current_date += timedelta(days=1)
+
+# --- FOOTER ---
+st.markdown("---")
+st.markdown("<center>Built for Adwallz Operations Team 🚀</center>", unsafe_allow_html=True)
