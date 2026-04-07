@@ -7,9 +7,9 @@ st.set_page_config(page_title="ADWALLZ - On Field Execution Calculator", layout=
 # --- HEADER ---
 col_logo = st.columns([1,2,1])
 with col_logo[1]:
-    st.image("logo.png", width=200)
+    st.image("logo.png", width=100)
 
-st.markdown("<h2 style='text-align: center;'>ADWALLZ - On Field Execution Calculator</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center;'>On Field Execution Calculator</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- INPUT ---
